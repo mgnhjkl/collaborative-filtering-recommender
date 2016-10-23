@@ -1,12 +1,15 @@
+ #!/usr/bin/python
+ # -*- coding: utf-8 -*-
 import math
 import heapq
+import sys
 
 def pearson_correlation(user1, user2):
 	collect1 = user_dict[user1]
 	collect2 = user_dict[user2]
-	r1 = sum([(float)(collect1[key]) for key in collect1]) / len(collect1)
-	r2 = sum([(float)(collect2[key]) for key in collect2]) / len(collect2)
 	intersect_items = set(collect1.keys()).intersection(set(collect2.keys()))
+	r1 = avg_ratings(user1, intersect_items)
+	r2 = avg_ratings(user2, intersect_items)
 	dot_multi = 0.0
 	numerator1 = 0.0
 	numerator2 = 0.0
@@ -18,31 +21,62 @@ def pearson_correlation(user1, user2):
 		numerator2 += pow((rating2 - r2), 2)
 	return dot_multi / (math.sqrt(numerator1) * math.sqrt(numerator2))
 
-def iterate_users(user1):
+def iterate_users(user1, item):
 	for user in user_dict:
-		if user != user1:
+		# if user != user1:
+		# print user_dict[user][item]
+		if user != user1 and argv[3] in user_dict[user]:
 			yield pearson_correlation(user, user1), user
 
-def K_nearest_neighbors(user1, k):
-	k_heap = heapq.nlargest(k, iterate_users(user1))
+def K_nearest_neighbors(user1, k, item):
+	k_heap = heapq.nlargest(k, iterate_users(user1, item))
+	print k_heap
 	k_heap.sort(key = lambda tup : tup[1])
 	k_heap.sort(key = lambda tup : tup[0], reverse = True)
 	return [(tup[1], tup[0]) for tup in k_heap]
 
+def avg_ratings(user, intersect_items):
+	collect = user_dict[user]
+	return sum([(float)(collect[key]) for key in intersect_items]) / len(intersect_items)
+
 def Predict(user1, item, k_nearest_neighbors):
-	pass
+	a_items = user_dict[user1].keys()
+	a_items = set(a_items)
+	ra = avg_ratings(user1, a_items)
+	pai = 0.0
+	numerator = 0.0
+	denominator = 0.0
+	for user, pc in k_nearest_neighbors:
+		if item in user_dict[user]:
+			collect1 = user_dict[user1]
+			collect2 = user_dict[user]
+			intersect_items = set(collect1.keys()).intersection(set(collect2.keys()))
+			numerator += pc * ((float)(user_dict[user][item]) - avg_ratings(user, intersect_items))
+			denominator += abs(pc)
+	return ra + numerator / denominator
 
 user_dict = dict()
-item_dict = dict()
 def readfile(filename):
 	f = open(filename, "r")
 	for line in  f.readlines():
 		user_id, trating, movie_title = line.split("\t")
+		movie_title = movie_title.strip()
+		user_id = user_id.strip()
 		user_dict.setdefault(user_id, dict())[movie_title] = trating
-		item_dict.setdefault(movie_title, dict())[user_id] = trating
 
-readfile("ratings-dataset.tsv")
-pearson_correlation("Kluver", "JosephIsAwesome")
-neighbors = K_nearest_neighbors("Kluver", 15)
-for n in neighbors:
-	print n
+def main(argv):
+	filename = argv[1]
+	user = argv[2]
+	item = argv[3]
+	k = (int)(argv[4])
+	readfile("ratings-dataset.tsv")
+	neighbors = K_nearest_neighbors(user, k, item)
+	p = Predict(user, item, neighbors)
+	for n in neighbors:
+		print str(n[0]) + " " + str(n[1])
+	print str(p)
+
+
+if __name__ == '__main__':
+	argv = sys.argv
+	main(argv)
