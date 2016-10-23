@@ -23,14 +23,11 @@ def pearson_correlation(user1, user2):
 
 def iterate_users(user1, item):
 	for user in user_dict:
-		# if user != user1:
-		# print user_dict[user][item]
 		if user != user1 and argv[3] in user_dict[user]:
 			yield pearson_correlation(user, user1), user
 
 def K_nearest_neighbors(user1, k, item):
 	k_heap = heapq.nlargest(k, iterate_users(user1, item))
-	print k_heap
 	k_heap.sort(key = lambda tup : tup[1])
 	k_heap.sort(key = lambda tup : tup[0], reverse = True)
 	return [(tup[1], tup[0]) for tup in k_heap]
